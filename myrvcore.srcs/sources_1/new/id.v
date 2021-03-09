@@ -1,7 +1,7 @@
 module decode(
 input[31:0] instruction,
 output[31:0] read_data1,read_data2,
-output reg Branch,MemtoReg,ALUsrc,RegWrite,
+output reg Branch,MemtoReg,ALUsrc,RegWrite, Jump,
 output reg[1:0] BranchType,
 output reg[3:0] MemRead,
 output reg[1:0] MemWrite,
@@ -88,7 +88,9 @@ reg[10:0] control_signals;
 //            RegWrite <= control_signals[8];
 //            MemRead<=control_signals[4:7];
 //            MemWrite<=control_signals[3];
-//            Branch <= control_signals[2]; 
+//            Branch <= control_signals[2];
+//            Branch_type 
+//            Jump
 //end
 
 assign Op_bits = {instruction[30],instruction[14:12],instruction[6:0]};
@@ -113,12 +115,13 @@ begin
     case(opcode)
     LOAD    :
     begin
-            AluOp <=  2'b000;
+            AluOp <=  3'b000;
             ALUsrc<= 1; //immediate in instruction
             MemtoReg <= 1;  //output of memory
             RegWrite <= 1;  //write into rd
             MemWrite<=2'b00; //no write
             Branch <= 0; //no branch
+            Jump <= 0;
             case(instruction[14:12])
                
                 fun3_LB     :   /*wstrb = 1000*/
@@ -146,12 +149,13 @@ begin
     end          
     STORE   :
     begin
-            AluOp <=  2'b000;
+            AluOp <=  3'b000;
             ALUsrc<= 1; //immediate in instruction
             MemtoReg <= 1;  //output of memory
             RegWrite <= 1;  //write into rd
             MemRead<=4'b0000; //no write
             Branch <= 0; //no branch
+            Jump <= 0;
             case(instruction[14:12])
                 fun3_SB 	: MemWrite<=2'b01;//
 				fun3_SH 	: MemWrite<=2'b10;
@@ -166,7 +170,8 @@ begin
             RegWrite <= 0;
             MemRead<= 4'b0000;  //could be dont care
             MemWrite<= 2'b00;
-            Branch <= 1;             
+            Branch <= 1;   
+            Jump <= 0;          
             case(instruction[14:12])
                 fun3_BEQ    : 
                 begin
@@ -200,12 +205,41 @@ begin
                 end
             endcase    
     end          
-    JALR    :       ;
-    JAL     :       ;
+    JALR    :       
+        begin
+//            Aluop
+            ALUsrc<= 0;
+            RegWrite <= 0;
+            MemRead<= 4'b0000;  //could be dont care
+            MemWrite<= 2'b00;
+            Branch <= 0;
+            Jump <= 1; 
+        end
+    JAL     :       
+        begin
+//            Aluop
+            ALUsrc<= 0;
+            RegWrite <= 0;
+            MemRead<= 4'b0000;  //could be dont care
+            MemWrite<= 2'b00;
+            Branch <= 0;
+            Jump <= 1;     
+        end
     OP_IMM  :
     begin
+        begin
+            ALUsrc <= 1;
+            RegWrite <= 1;
+            MemRead <= 4'b0000;
+            MemWrite <= 2'b00;
+            Branch <= 0;
+            Jump <= 0;
+        end
             case(instruction[14:12])
-                fun3_ADDI 	: ;
+                fun3_ADDI 	: 
+                begin
+                    AluOp <= 3'b000;
+                end
 				fun3_SLTI 	: ;
 				fun3_SLTIU 	: ;
 				fun3_XORI	: ;
